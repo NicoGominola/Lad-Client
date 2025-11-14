@@ -440,6 +440,48 @@
     transform: rotate(45deg) scale(0.96);
 }
 
+/* Audio Button in Action Bar */
+.home-actions .audio-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 1.2rem;
+    color: var(--element-color);
+    background: linear-gradient(135deg, rgba(70, 70, 70, 0.3) 0%, rgba(50, 50, 50, 0.2) 100%);
+    border: 1.5px solid rgba(128, 128, 128, 0.25);
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    margin: 0;
+    backdrop-filter: blur(8px);
+    user-select: none;
+    line-height: 1;
+}
+
+/* visual active state when audio is playing */
+.home-actions .audio-btn.playing {
+    background: linear-gradient(135deg, var(--element-color) 0%, rgba(var(--element-color-rgb), 0.85) 100%);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 20px rgba(var(--element-color-rgb), 0.25);
+    transform: translateY(-2px) scale(1.03);
+}
+
+/* hover / active interactions mirror settings button */
+.home-actions .audio-btn:hover {
+    background: linear-gradient(135deg, rgba(80, 80, 80, 0.4) 0%, rgba(60, 60, 60, 0.3) 100%);
+    border-color: rgba(128, 128, 128, 0.4);
+    transform: rotate(0deg) scale(1.08);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    color: var(--element-color);
+}
+
+.home-actions .audio-btn:active {
+    transform: scale(0.96);
+}
+
 /* ==================== INSTANCE SELECTOR MODAL ==================== */
 .instance-popup {
     position: absolute;
@@ -1113,4 +1155,92 @@
 
 .game-starting-notification.hide {
     animation: slideOutRight 0.4s ease;
+}
+
+/* Volume control styles (launcher settings) */
+.volume-control {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    text-align: left;
+}
+
+.volume-control .volume-row {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.volume-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 360px;
+    height: 8px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--element-color) 0%, rgba(128,128,128,0.25) 100%);
+    outline: none;
+    transition: opacity 0.2s;
+}
+
+.volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid var(--element-color);
+    box-shadow: 0 6px 14px rgba(0,0,0,0.25);
+    cursor: pointer;
+}
+
+.volume-value {
+    min-width: 48px;
+    text-align: center;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+}
+
+.audio-mute-btn {
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    border: 1.2px solid rgba(128,128,128,0.2);
+    background: linear-gradient(135deg, rgba(50,50,50,0.3) 0%, rgba(40,40,40,0.2) 100%);
+    color: var(--element-color);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.audio-mute-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(0,0,0,0.2);
+}
+
+/* Import a nice font for the server title */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;800&display=swap');
+
+.server-instance-title {
+    margin-top: 6px;
+    font-family: 'Montserrat', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    font-weight: 800;
+    font-size: 1.15rem; /* ajusta según prefieras */
+    color: #ffffff;
+    letter-spacing: -0.5px;
+    text-shadow: 0 6px 18px rgba(0,0,0,0.6);
+    line-height: 1;
+    max-width: 420px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* responsive tweak */
+@media (max-width: 768px) {
+    .server-instance-title {
+        font-size: 1rem;
+    }
 }

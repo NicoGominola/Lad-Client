@@ -139,8 +139,6 @@
                 </div>
             </div>
 
-
-
             <!-- Close behavior card -->
             <div class="settings-card">
                 <div class="card-title">Comportamiento al Cerrar</div>
@@ -155,6 +153,22 @@
                         <button class="close-btn close-none" title="No cerrar nada">
                             <span>No Cerrar</span>
                         </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audio volume control for launcher -->
+            <div class="settings-card">
+                <div class="card-title">Volumen del Launcher</div>
+                <div class="card-content">
+                    <div class="volume-control">
+                        <label for="audio-volume-slider">Volumen de la música</label>
+                        <div class="volume-row">
+                            <input id="audio-volume-slider" class="volume-slider" type="range" min="0" max="100" step="1" value="100" />
+                            <div id="audio-volume-value" class="volume-value">100%</div>
+                            <button id="audio-mute-toggle" class="audio-mute-btn" title="Silenciar">🔈</button>
+                        </div>
+                        <p class="volume-note">Ajusta el volumen global de la música del launcher para cada instancia.</p>
                     </div>
                 </div>
             </div>

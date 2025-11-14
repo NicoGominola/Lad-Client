@@ -8,7 +8,19 @@ const { Launch } = require('minecraft-java-core')
 const { shell, ipcRenderer } = require('electron')
 
 class Home {
-    static id = "home";
+	// new helpers/properties to manage background elements/timers
+	bgTimer = null;
+	bgElement = null;
+	currentBackground = null;
+	currentIsVideo = false;
+
+	// new audio properties
+	audio = null;
+	audioButton = null;
+	audioPlaying = false;
+	currentMusic = null;
+
+	static id = "home";
 
     async init(config) {
         this.config = config;
@@ -17,6 +29,13 @@ class Home {
         this.renderSidebarAvatars();
         this.instancesSelect();
         document.querySelector('.settings-btn').addEventListener('click', e => changePanel('settings'));
+
+		// create audio controls in .home-actions
+		try {
+			this.createAudioControls();
+            // setup volume UI and sync with stored config (if present)
+			try { await this.setupVolumeControl(); } catch (err) { console.warn('Failed to setup volume control:', err); }
+		} catch (err) { console.warn('Failed to create audio controls:', err); }
     }
 
     async filterAuthorizedInstances(instancesList, authName) {
@@ -91,29 +110,152 @@ class Home {
     }
 
     setBackground(url) {
-        try {
-            if (!url) {
-                document.body.style.backgroundImage = '';
-                this.currentBackground = null;
-                return;
-            }
+		// Reemplaza el método existente para soportar:
+		// - url string o array de urls
+		// - reproducción de video (mp4/webm/ogg) como fondo
+		// - slideshow de imágenes si hay múltiples imágenes
+		try {
+			// limpiar timers/elementos previos
+			if (this.bgTimer) {
+				clearInterval(this.bgTimer);
+				this.bgTimer = null;
+			}
+			if (this.bgElement && this.bgElement.parentNode) {
+				// si había un video, pausarlo
+				const vid = this.bgElement.querySelector('video');
+				if (vid && typeof vid.pause === 'function') {
+					try { vid.pause(); } catch (e) { }
+					vid.src = '';
+				}
+				this.bgElement.remove();
+				this.bgElement = null;
+			}
+			// reset body background
+			document.body.style.backgroundImage = '';
+			this.currentBackground = null;
+			this.currentIsVideo = false;
 
-            const img = new Image();
-            img.onload = () => {
-                document.body.style.backgroundImage = `url('${url}')`;
-                this.currentBackground = url;
-            };
-            img.onerror = () => {
-                console.warn('No se pudo cargar la imagen de fondo:', url);
-                document.body.style.backgroundImage = '';
-                this.currentBackground = null;
-            };
-            img.src = url;
-        } catch (e) {
-            console.warn('Error estableciendo fondo:', e);
-            document.body.style.backgroundImage = '';
-        }
-    }
+			if (!url) {
+				return;
+			}
+
+			const videoRegex = /\.(mp4|webm|ogg)(\?.*)?$/i;
+			const urls = Array.isArray(url) ? url.slice() : [url];
+
+			// normalize (filtrar solo strings)
+			const valid = urls.filter(u => typeof u === 'string' && u.trim().length > 0);
+
+			if (!valid.length) return;
+
+			// separar videos e imagenes
+			const videos = valid.filter(u => videoRegex.test(u));
+			const images = valid.filter(u => !videoRegex.test(u));
+
+			// crear contenedor de fondo
+			const container = document.createElement('div');
+			container.className = 'launcher-background-media';
+			Object.assign(container.style, {
+				position: 'fixed',
+				inset: '0',
+				width: '100%',
+				height: '100%',
+				zIndex: '-1',
+				overflow: 'hidden',
+				pointerEvents: 'none',
+				display: 'block',
+				backgroundColor: 'transparent'
+			});
+
+			// preferir video si existe
+			if (videos.length > 0) {
+				const video = document.createElement('video');
+				video.autoplay = true;
+				video.loop = true;
+				video.muted = true;
+				video.playsInline = true;
+				video.src = videos[0];
+				Object.assign(video.style, {
+					position: 'absolute',
+					top: '50%',
+					left: '50%',
+					transform: 'translate(-50%,-50%)',
+					minWidth: '100%',
+					minHeight: '100%',
+					width: 'auto',
+					height: 'auto',
+					objectFit: 'cover'
+				});
+				// si el video falla, intento fallback a imagen (si existe)
+				video.onerror = () => {
+					video.remove();
+					if (images.length) {
+						container.style.backgroundImage = `url('${images[0]}')`;
+						container.style.backgroundSize = 'cover';
+						container.style.backgroundPosition = 'center center';
+					}
+				};
+				container.appendChild(video);
+				document.body.appendChild(container);
+				this.bgElement = container;
+				this.currentBackground = videos[0];
+				this.currentIsVideo = true;
+				// intentar play seguro (algunas plataformas requieren interacción)
+				try { video.play().catch(()=>{}); } catch (e) { }
+				return;
+			}
+
+			// si no hay video, usar imágenes
+			if (images.length === 1) {
+				container.style.backgroundImage = `url('${images[0]}')`;
+				container.style.backgroundSize = 'cover';
+				container.style.backgroundPosition = 'center center';
+				document.body.appendChild(container);
+				this.bgElement = container;
+				this.currentBackground = images[0];
+				this.currentIsVideo = false;
+				return;
+			}
+
+			// slideshow si hay múltiples imágenes
+			if (images.length > 1) {
+				let idx = 0;
+				const slide = document.createElement('div');
+				Object.assign(slide.style, {
+					position: 'absolute',
+					inset: '0',
+					backgroundSize: 'cover',
+					backgroundPosition: 'center center',
+					transition: 'opacity 1s ease',
+					opacity: '1'
+				});
+				slide.style.backgroundImage = `url('${images[0]}')`;
+				container.appendChild(slide);
+				document.body.appendChild(container);
+				this.bgElement = container;
+				this.currentBackground = images[0];
+				this.currentIsVideo = false;
+
+				// ciclo cada 8s
+				this.bgTimer = setInterval(() => {
+					idx = (idx + 1) % images.length;
+					try {
+						slide.style.opacity = '0';
+						setTimeout(() => {
+							try {
+								slide.style.backgroundImage = `url('${images[idx]}')`;
+								this.currentBackground = images[idx];
+								slide.style.opacity = '1';
+							} catch (e) { console.warn('Error cambiando slide bg:', e); }
+						}, 500);
+					} catch (e) { console.warn('Error en slideshow bg:', e); }
+				}, 8000);
+				return;
+			}
+		} catch (e) {
+			console.warn('Error estableciendo fondo multimedia:', e);
+			document.body.style.backgroundImage = '';
+		}
+	}
 
     async news() {
         let newsElement = document.querySelector('.news-list');
@@ -200,6 +342,213 @@ class Home {
         });
     }
 
+	// New: create audio button + audio element (improved: apply saved volume/mute immediately)
+	createAudioControls() {
+		const actions = document.querySelector('.home-actions');
+		if (!actions) return;
+
+		if (this.audioButton) return;
+
+		const btn = document.createElement('button');
+		btn.className = 'audio-btn';
+		btn.type = 'button';
+		btn.title = 'Toggle music';
+		btn.innerHTML = '🔈';
+		actions.appendChild(btn);
+		this.audioButton = btn;
+
+		const audio = document.createElement('audio');
+		audio.autoplay = false;
+		audio.loop = true;
+		audio.crossOrigin = 'anonymous';
+		audio.preload = 'auto';
+		audio.style.display = 'none';
+		document.body.appendChild(audio);
+		this.audio = audio;
+
+		// Apply saved volume/mute right away (async)
+		(async () => {
+			try {
+				const cfg = await this.db.readData('configClient') || {};
+				const vol = cfg.launcher_config?.audio_volume;
+				const muted = !!cfg.launcher_config?.audio_muted;
+				if (typeof vol === 'number') {
+					try { this.audio.volume = Math.max(0, Math.min(1, vol / 100)); } catch (e) {}
+				}
+				try { this.audio.muted = muted; } catch (e) {}
+				// reflect mute state on audio button icon
+				if (muted) btn.innerHTML = '🔇';
+			} catch (e) {
+				console.warn('createAudioControls: failed loading saved volume/mute', e);
+			}
+		})();
+
+		btn.addEventListener('click', async () => {
+			if (!this.audio) return;
+			if (this.audio.paused) {
+				try {
+					await this.audio.play();
+					btn.classList.add('playing');
+					btn.innerHTML = '🔊';
+					this.audioPlaying = true;
+				} catch (e) {
+					console.warn('Audio play blocked:', e);
+					this.audioPlaying = true;
+					btn.classList.add('playing');
+					btn.innerHTML = '🔊';
+				}
+			} else {
+				this.audio.pause();
+				btn.classList.remove('playing');
+				btn.innerHTML = '🔈';
+				this.audioPlaying = false;
+			}
+		});
+	}
+
+	// New: load/set music URL for current instance (ensure volume/mute applied before play)
+	async setMusic(url) {
+		try {
+			if (!this.audio) {
+				this.createAudioControls();
+				if (!this.audio) return;
+			}
+
+			// stop if no url
+			if (!url) {
+				this.currentMusic = null;
+				try { this.audio.pause(); } catch (e) {}
+				this.audio.removeAttribute('src');
+				this.audio.load();
+				if (this.audioButton) {
+					this.audioButton.classList.remove('playing');
+					this.audioButton.innerHTML = '🔈';
+					this.audioPlaying = false;
+				}
+				return;
+			}
+
+			// avoid reload same track
+			if (this.currentMusic === url) {
+				if (this.audioPlaying && this.audio.paused) {
+					try { await this.audio.play(); } catch (e) {}
+				}
+				return;
+			}
+
+			this.currentMusic = url;
+			this.audio.src = url;
+			this.audio.load();
+
+			// Ensure the audio element uses current saved volume/muted before attempting play
+			try {
+				const cfg = await this.db.readData('configClient') || {};
+				const vol = typeof cfg.launcher_config?.audio_volume === 'number' ? cfg.launcher_config.audio_volume : null;
+				const muted = !!cfg.launcher_config?.audio_muted;
+				if (vol !== null) {
+					try { this.audio.volume = Math.max(0, Math.min(1, vol / 100)); } catch (e) {}
+				}
+				try { this.audio.muted = muted; } catch (e) {}
+				// update UI mute icon if settings panel not open
+				const muteBtn = document.querySelector('#audio-mute-toggle');
+				if (muteBtn) muteBtn.textContent = muted ? '🔇' : '🔈';
+			} catch (e) {
+				console.warn('setMusic: failed applying saved volume/mute', e);
+			}
+
+			if (this.audioPlaying) {
+				try {
+					await this.audio.play();
+				} catch (e) {
+					console.warn('setMusic: play blocked or failed', e);
+				}
+			}
+		} catch (e) {
+			console.warn('Error setting music:', e);
+		}
+	}
+
+	// New: bind settings slider/mute to audio and persist value in configClient
+	async setupVolumeControl() {
+		try {
+			const slider = document.querySelector('#audio-volume-slider');
+			const valueSpan = document.querySelector('#audio-volume-value');
+			const muteBtn = document.querySelector('#audio-mute-toggle');
+
+			// If elements not yet in DOM, observe and re-run when they appear
+			if (!slider || !muteBtn || !valueSpan) {
+				const observer = new MutationObserver((mutations, obs) => {
+					const s = document.querySelector('#audio-volume-slider');
+					const v = document.querySelector('#audio-volume-value');
+					const m = document.querySelector('#audio-mute-toggle');
+					if (s && v && m) {
+						obs.disconnect();
+						// re-call to bind now that elements exist
+						setTimeout(() => { this.setupVolumeControl().catch(()=>{}); }, 0);
+					}
+				});
+				observer.observe(document.body, { childList: true, subtree: true });
+				// safety timeout to disconnect after 6s
+				setTimeout(() => observer.disconnect(), 6000);
+				return;
+			}
+
+			// ensure DB/config available
+			let configClient = await this.db.readData('configClient') || {};
+			if (!configClient.launcher_config) configClient.launcher_config = {};
+
+			// default values
+			let vol = typeof configClient.launcher_config.audio_volume === 'number'
+				? configClient.launcher_config.audio_volume
+				: 100;
+			let muted = !!configClient.launcher_config.audio_muted;
+
+			// apply to UI & audio
+			slider.value = String(vol);
+			valueSpan.textContent = `${vol}%`;
+			muteBtn.textContent = muted ? '🔇' : '🔈';
+
+			if (this.audio) {
+				try { this.audio.volume = Math.max(0, Math.min(1, vol / 100)); } catch (e) {}
+				try { this.audio.muted = muted; } catch (e) {}
+			}
+
+			// bind events (use input for live feedback)
+			const onSliderInput = async (ev) => {
+				const v = Number(ev.target.value || 0);
+				valueSpan.textContent = `${v}%`;
+				if (this.audio) {
+					try { this.audio.volume = v / 100; } catch (e) {}
+				}
+				configClient.launcher_config.audio_volume = v;
+				try { await this.db.updateData('configClient', configClient); } catch (e) { console.warn('Failed to save volume to DB:', e); }
+			};
+
+			const onMuteToggle = async () => {
+				muted = !muted;
+				if (this.audio) {
+					try { this.audio.muted = muted; } catch (e) {}
+				}
+				muteBtn.textContent = muted ? '🔇' : '🔈';
+				// also update audio-button icon to reflect mute when paused
+				if (this.audioButton && !this.audioPlaying) {
+					this.audioButton.innerHTML = muted ? '🔇' : '🔈';
+				}
+				configClient.launcher_config.audio_muted = muted;
+				try { await this.db.updateData('configClient', configClient); } catch (e) { console.warn('Failed to save mute to DB:', e); }
+			};
+
+			// remove previous listeners if any (basic)
+			slider.removeEventListener('input', onSliderInput);
+			muteBtn.removeEventListener('click', onMuteToggle);
+
+			slider.addEventListener('input', onSliderInput);
+			muteBtn.addEventListener('click', onMuteToggle);
+		} catch (e) {
+			console.warn('setupVolumeControl error:', e);
+		}
+	}
+
     async renderSidebarAvatars() {
         try {
             let configClient = await this.db.readData('configClient');
@@ -221,15 +570,31 @@ class Home {
                 document.body.appendChild(tooltip);
             }
 
-            const defaultAvatar = 'assets/images/icon.png';
             for (let instance of instancesList) {
 
-                const bg = instance.backgroundUrl || instance.background || '';
-                const avatar = instance.avatarUrl || instance.iconUrl || instance.icon || '';
+				// elegir correctamente primer avatar/bg si son arrays y evitar usar video como thumbnail
+				const rawBg = instance.backgroundUrl || instance.background || '';
+				const rawAvatar = instance.avatarUrl || instance.iconUrl || instance.icon || '';
+
+				const videoRegex = /\.(mp4|webm|ogg)(\?.*)?$/i;
+				const pickFirst = (v) => {
+					if (!v) return '';
+					if (Array.isArray(v)) {
+						// preferir primera imagen; si no hay images, tomar el primer elemento (aunque sea video)
+						const images = v.filter(x => typeof x === 'string' && !videoRegex.test(x));
+						return images.length ? images[0] : (typeof v[0] === 'string' ? v[0] : '');
+					}
+					return (typeof v === 'string') ? v : '';
+				};
+
+				const bg = pickFirst(rawBg);
+				const avatar = pickFirst(rawAvatar);
+
                 const el = document.createElement('div');
                 el.className = 'instance-avatar';
                 el.dataset.name = instance.name;
 
+                const defaultAvatar = 'assets/images/icon.png';
                 if (avatar) el.style.backgroundImage = `url('${avatar}')`;
                 else if (bg) el.style.backgroundImage = `url('${bg}')`;
                 else el.style.backgroundImage = `url('${defaultAvatar}')`;
@@ -267,6 +632,8 @@ class Home {
 
                         try { this.setBackground(bg || null); } catch (e) { }
                         try { setStatus(instance.status); } catch (e) { }
+						try { this.setMusic(instance.music || instance.musicUrl || null); } catch (e) { }
+						try { this.updateServerTitle(instance.name); } catch (e) { }
                     } catch (err) { console.warn('Error al seleccionar instancia desde sidebar:', err); }
                 });
 
@@ -310,7 +677,12 @@ class Home {
 
         try {
             let currentOption = instancesList.find(i => i.name === instanceSelect);
-            if (currentOption) this.setBackground(currentOption.backgroundUrl || currentOption.background || null);
+            if (currentOption) {
+                this.setBackground(currentOption.backgroundUrl || currentOption.background || null);
+                // load music for initial selection (do not auto-play unless user toggled)
+                try { this.setMusic(currentOption.music || currentOption.musicUrl || null); } catch (e) {}
+                try { this.updateServerTitle(currentOption.name); } catch (e) {}
+            }
         } catch (e) { console.warn('Error aplicando fondo inicial:', e); }
 
         instanceBTN.addEventListener('click', async () => {
@@ -324,10 +696,20 @@ class Home {
                 instancesListPopup.innerHTML = '';
                 
                 for (let instance of instancesList) {
-                    const bg = instance.backgroundUrl || instance.background || '';
-                    const bannerStyle = bg ? `style="background-image: url('${bg}');"` : '';
+                    // Normalizar bg para banner (evitar insertar arrays crudos en HTML)
+					const rawBg = instance.backgroundUrl || instance.background || '';
+					const videoRegex = /\.(mp4|webm|ogg)(\?.*)?$/i;
+					let bgForBanner = '';
+					if (Array.isArray(rawBg)) {
+						const images = rawBg.filter(x => typeof x === 'string' && !videoRegex.test(x));
+						bgForBanner = images.length ? images[0] : (typeof rawBg[0] === 'string' ? rawBg[0] : '');
+					} else {
+						bgForBanner = typeof rawBg === 'string' ? rawBg : '';
+					}
+
+                    const bannerStyle = bgForBanner ? `style="background-image: url('${bgForBanner}');"` : '';
                     instancesListPopup.innerHTML += `
-                        <div id="${instance.name}" class="instance-card${instance.name === instanceSelect ? ' active-instance' : ''}" data-bg="${bg}">
+                        <div id="${instance.name}" class="instance-card${instance.name === instanceSelect ? ' active-instance' : ''}" data-bg="${bgForBanner}">
                             <div class="instance-banner" ${bannerStyle}>
                                 <div class="instance-banner-overlay">
                                     <div class="instance-name">${instance.name}</div>
@@ -379,6 +761,8 @@ class Home {
 
                 await setStatus(instance.status);
                 try { this.setBackground(instance.backgroundUrl || instance.background || null); } catch (e) { }
+				try { this.setMusic(instance.music || instance.musicUrl || null); } catch (e) {}
+				try { this.updateServerTitle(instance.name); } catch (e) {}
                 instancePopup.style.display = 'none';
             }
         });
@@ -537,6 +921,21 @@ class Home {
         });
     }
 
+    // New: update server instance title in the header
+	updateServerTitle(name) {
+		try {
+			const el = document.querySelector('.server-instance-title');
+			if (!el) return;
+			if (!name) {
+				el.textContent = 'Selecciona una instancia';
+				return;
+			}
+			el.textContent = name;
+		} catch (e) {
+			console.warn('updateServerTitle error:', e);
+		}
+	}
+
     async startGame() {
         const rawConfig = await this.db.readData('configClient');
         let configClient = rawConfig || {};
@@ -675,8 +1074,22 @@ class Home {
         try {
             const startImg = document.querySelector('.starting-icon-big');
             if (startImg) {
-                const avatar = options.avatarUrl || options.avatar || options.iconUrl || options.icon || options.backgroundUrl || options.background;
-                startImg.src = avatar || 'assets/images/icon.png';
+                // elegir preview: preferir imagenes; si background es video, usar icon por defecto
+                const avatarRaw = options.avatarUrl || options.avatar || options.iconUrl || options.icon || options.backgroundUrl || options.background;
+                const videoRegex = /\.(mp4|webm|ogg)(\?.*)?$/i;
+                let preview = null;
+                if (Array.isArray(avatarRaw)) {
+                    preview = avatarRaw.find(u => typeof u === 'string' && !videoRegex.test(u)) || avatarRaw.find(u => typeof u === 'string');
+                } else if (typeof avatarRaw === 'string') {
+                    preview = avatarRaw;
+                }
+                if (preview && !videoRegex.test(preview)) {
+                    startImg.src = preview;
+                } else {
+                    // fallback icon
+                    const fallback = options.avatarUrl || options.avatar || options.iconUrl || options.icon || 'assets/images/icon.png';
+                    startImg.src = (typeof fallback === 'string' && !videoRegex.test(fallback)) ? fallback : 'assets/images/icon.png';
+                }
             }
         } catch (err) { console.warn('Failed to set starting image:', err); }
 
