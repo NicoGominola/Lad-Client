@@ -882,7 +882,7 @@ class Home {
                 console.log("Usuario detectado:", usuario);
               
                 try {
-                    const response = await fetch(`http://104.243.47.197:25572/api/validate.php`, {
+                    const response = await fetch(`http://104.243.47.197:25577/api/validate.php`, {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
