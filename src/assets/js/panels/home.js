@@ -27,6 +27,57 @@ class Home {
 	logBuffer = [];
 	maxLogs = 5000;
 
+	// Safe wrapper to call utils.setStatus only when the expected DOM elements are present.
+	// If not present, observe DOM for their appearance (with a fallback timeout).
+	async safeSetStatus(status) {
+		try {
+			if (typeof setStatus !== 'function') return;
+			this.pendingStatus = status;
+
+			// selectors that utils.setStatus is likely to touch; broad set to be safe
+			const selectors = [
+				'.server-status',
+				'.server-status-text',
+				'.server-instance-status',
+				'.server-status-icon',
+				'.server-instance-title'
+			];
+
+			const existsNow = selectors.some(s => !!document.querySelector(s));
+			if (existsNow) {
+				try { setStatus(status); } catch (e) { console.warn('safeSetStatus: setStatus failed', e); }
+				this.pendingStatus = null;
+				return;
+			}
+
+			// observe for up to 5s for any of the selectors to appear
+			const observer = new MutationObserver((mutations, obs) => {
+				const found = selectors.some(s => !!document.querySelector(s));
+				if (found) {
+					try { setStatus(this.pendingStatus); } catch (e) { console.warn('safeSetStatus: setStatus failed on observed element', e); }
+					this.pendingStatus = null;
+					obs.disconnect();
+				}
+			});
+			observer.observe(document.body, { childList: true, subtree: true });
+
+			// Safety timeout: after 5s try once and disconnect
+			setTimeout(() => {
+				try {
+					if (this.pendingStatus !== null) {
+						try { setStatus(this.pendingStatus); } catch (e) { /* ignore */ }
+						this.pendingStatus = null;
+					}
+				} finally {
+					try { observer.disconnect(); } catch (e) {}
+				}
+			}, 5000);
+		} catch (e) {
+			console.warn('safeSetStatus error:', e);
+			try { this.pendingStatus = null; } catch (err) {}
+		}
+	}
+
 	static id = "home";
 
     async init(config) {
@@ -656,7 +707,7 @@ class Home {
                         ipcRenderer.send('instance-changed', { instanceName: instance.name });
 
                         try { this.setBackground(bg || null); } catch (e) { }
-                        try { setStatus(instance.status); } catch (e) { }
+                        try { await this.safeSetStatus(instance.status); } catch (e) { }
                         try { this.setMusic(instance.music || instance.musicUrl || null); } catch (e) { }
                         try { this.updateServerTitle(instance.name); } catch (e) { }
                         // NEW: update ads for selected instance (use adsClickUrl from webhost)
@@ -697,7 +748,8 @@ class Home {
 
         for (let instance of instancesList) {
             if (instance.name === instanceSelect) {
-                setStatus(instance.status);
+                // use safe wrapper to avoid null DOM updates
+                this.safeSetStatus(instance.status);
                 break;
             }
         }
@@ -715,87 +767,18 @@ class Home {
         } catch (e) { console.warn('Error aplicando fondo inicial:', e); }
 
         instanceBTN.addEventListener('click', async () => {
-            const previousBackground = this.currentBackground;
-            
+            // Mode: código solamente -> no mostrar ni renderizar instancias dentro del popup.
             instancesListPopup.innerHTML = '';
-
-            if (instancesList.length === 0) {
-                instancesListPopup.innerHTML = `<div class="no-instances">No hay instancias activas disponibles</div>`;
-            } else {
-                instancesListPopup.innerHTML = '';
-                
-                for (let instance of instancesList) {
-                    // Prefer avatar/icon as banner (evitar usar vídeo como thumbnail)
-                    const rawAvatar = instance.avatarUrl || instance.avatar || instance.iconUrl || instance.icon || instance.backgroundUrl || instance.background || '';
-                    const videoRegex = /\.(mp4|webm|ogg)(\?.*)?$/i;
-                    let avatarForBanner = '';
-                    if (Array.isArray(rawAvatar)) {
-                        const images = rawAvatar.filter(x => typeof x === 'string' && !videoRegex.test(x));
-                        avatarForBanner = images.length ? images[0] : (typeof rawAvatar[0] === 'string' ? rawAvatar[0] : '');
-                    } else {
-                        avatarForBanner = typeof rawAvatar === 'string' ? rawAvatar : '';
-                    }
-
-                    // loader info
-                    const loader = instance.loadder || instance.loaders || {};
-                    const loaderType = (loader.loadder_type || loader.loader_type || '') ;
-                    const mcVersion = (loader.minecraft_version || loader.minecraftVersion || '');
-
-                    const bannerStyle = avatarForBanner ? `style="background-image: url('${avatarForBanner}');"` : '';
-
-                    instancesListPopup.innerHTML += `
-                        <div id="${instance.name}" class="instance-card${instance.name === instanceSelect ? ' active-instance' : ''}" data-loader-type="${loaderType}" data-mc-version="${mcVersion}">
-                            <div class="instance-banner" ${bannerStyle}>
-                                <div class="instance-banner-overlay">
-                                    <div class="instance-name">${instance.name}</div>
-                                </div>
-                            </div>
-                            <div class="instance-hover-info" style="display:none;"></div>
-                        </div>`;
-                }
-            }
-
-            // hover behavior: show info panel inside the card (NO background change)
-            const onHover = e => {
-                const el = e.target.closest('.instance-card');
-                if (!el) return;
-
-                // show loader/version info inside card hover box
-                const loaderType = el.getAttribute('data-loader-type') || '';
-                const mcVer = el.getAttribute('data-mc-version') || '';
-                let content = `<div class="hover-title">${el.id}</div>`;
-                if (loaderType) content += `<div class="hover-line"><strong>Loader:</strong> ${loaderType}</div>`;
-                if (mcVer) content += `<div class="hover-line"><strong>Version:</strong> ${mcVer}</div>`;
-
-                const hoverInfo = el.querySelector('.instance-hover-info');
-                if (hoverInfo) {
-                    hoverInfo.innerHTML = content;
-                    hoverInfo.style.display = 'block';
-                }
-            };
-
-            const onLeave = e => {
-                const el = e.target.closest('.instance-card');
-                if (!el) {
-                    // hide any hover-info if leaving the container area
-                    const all = instancesListPopup.querySelectorAll('.instance-hover-info');
-                    all.forEach(h => h.style.display = 'none');
-                    return;
-                }
-                const hoverInfo = el.querySelector('.instance-hover-info');
-                if (hoverInfo) hoverInfo.style.display = 'none';
-            };
-
-            // ensure we don't re-add duplicates
-            instancesListPopup.removeEventListener('mouseover', onHover);
-            instancesListPopup.removeEventListener('mouseout', onLeave);
-            instancesListPopup.addEventListener('mouseover', onHover);
-            instancesListPopup.addEventListener('mouseout', onLeave);
-
-            // display modal
+            // Ocultar visualmente la lista (CSS adicional .instance-popup.code-only también la mantiene oculta)
+            instancesListPopup.style.display = 'none';
+            const modalSearch = document.querySelector('.instances-modal .modal-search');
+            if (modalSearch) modalSearch.style.display = 'none';
+            // marcar popup para comportamiento "solo-código"
+            instancePopup.classList.add('code-only');
+            // mostrar únicamente la UI del popup (la sección de desbloqueo ya está en el HTML)
             instancePopup.style.display = 'flex';
-        });
-
+         });
+ 
         // prevent selecting instance via click in popup (no selection action)
         instancePopup.addEventListener('click', async e => {
             const instanceEl = e.target.closest('.instance-card');
@@ -805,37 +788,44 @@ class Home {
             }
             // allow clicks on other controls (e.g., unlock code) to work normally
         });
-
+ 
+        // Selección desde popup: si estamos en modo 'code-only' no se permite seleccionar instancias.
         instancePopup.addEventListener('click', async e => {
+            if (instancePopup.classList.contains('code-only')) return;
             const instanceEl = e.target.closest('.instance-card');
-            if (instanceEl) {
-                let newInstanceSelect = instanceEl.id;
-                let instance = instancesList.find(i => i.name === newInstanceSelect);
-
-                if (!instance) return;
-
-                let active = document.querySelector('.active-instance');
-                if (active) active.classList.remove('active-instance');
-                instanceEl.classList.add('active-instance');
-
-                configClient.instance_selct = newInstanceSelect;
-                await this.db.updateData('configClient', configClient);
-                instanceSelect = newInstanceSelect;
-
-                ipcRenderer.send('instance-changed', { instanceName: newInstanceSelect });
-
-                await setStatus(instance.status);
-                try { this.setBackground(instance.backgroundUrl || instance.background || null); } catch (e) { }
-                try { this.setMusic(instance.music || instance.musicUrl || null); } catch (e) {}
-                try { this.updateServerTitle(instance.name); } catch (e) { }
-                // NEW: update ads when selecting from popup (use adsClickUrl)
-                try { this.setAds(instance.adsUrl || instance.ads || null, instance.adsClickUrl || instance.adsUrl || null); } catch (e) {}
-                instancePopup.style.display = 'none';
-            }
+            if (!instanceEl) return;
+ 
+            let newInstanceSelect = instanceEl.id;
+            let instance = instancesList.find(i => i.name === newInstanceSelect);
+            if (!instance) return;
+ 
+            let active = document.querySelector('.active-instance');
+            if (active) active.classList.remove('active-instance');
+            instanceEl.classList.add('active-instance');
+ 
+            configClient.instance_selct = newInstanceSelect;
+            await this.db.updateData('configClient', configClient);
+            instanceSelect = newInstanceSelect;
+ 
+            ipcRenderer.send('instance-changed', { instanceName: newInstanceSelect });
+ 
+            await this.safeSetStatus(instance.status);
+            try { this.setBackground(instance.backgroundUrl || instance.background || null); } catch (e) { }
+            try { this.setMusic(instance.music || instance.musicUrl || null); } catch (e) {}
+            try { this.updateServerTitle(instance.name); } catch (e) { }
+            try { this.setAds(instance.adsUrl || instance.ads || null, instance.adsClickUrl || instance.adsUrl || null); } catch (e) {}
+            instancePopup.style.display = 'none';
         });
-
-        instanceCloseBTN.addEventListener('click', () => instancePopup.style.display = 'none');
-
+ 
+        instanceCloseBTN.addEventListener('click', () => {
+            instancePopup.style.display = 'none';
+            // restaurar modo normal al cerrar
+            instancePopup.classList.remove('code-only');
+            instancesListPopup.style.display = '';
+            const modalSearch2 = document.querySelector('.instances-modal .modal-search');
+            if (modalSearch2) modalSearch2.style.display = '';
+        });
+ 
         const updateInstanceSelection = async () => {
             try {
                 await this.renderSidebarAvatars();
@@ -843,9 +833,9 @@ class Home {
                 console.error('Error updating instance selection:', err);
             }
         };
-
+ 
         updateInstanceSelection();
-
+ 
         setInterval(() => {
             updateInstanceSelection();
         }, 2500);

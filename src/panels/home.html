@@ -44,7 +44,6 @@
         </div>
         <div class="ads-video-wrap">
             <video class="ads-video" playsinline muted preload="metadata" loop></video>
-            <div class="ads-overlay">Publicidad</div>
         </div>
     </div>
 
@@ -67,8 +66,12 @@
     <div class="instance-popup">
         <div class="instances-modal">
             <div class="modal-header">
-                <h2>📦 Instancias</h2>
-                <button class="close-popup icon-close"></button>
+                <h2>📦 Colocar Codigo De Instancias</h2>
+                <!-- Added: small search control (visual, client-side only) -->
+                <div class="modal-search" aria-hidden="false" title="Buscar instancias">
+                    <input type="search" placeholder="Buscar instancia..." aria-label="Buscar instancias">
+                </div>
+                <button class="close-popup icon-close" aria-label="Cerrar"></button>
             </div>
             <div class="modal-content">
                 <div class="instances-List"></div>

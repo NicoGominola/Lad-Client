@@ -135,7 +135,7 @@
 /* Instances Sidebar */
 .instances-sidebar {
     width: 160px;
-    background: linear-gradient(180deg, rgba(35, 35, 35, 0.9) 0%, rgba(20, 20, 20, 0.95) 100%);
+    background: linear-gradient(180deg, rgb(35 35 35 / 0%) 0%, rgb(20 20 20 / 75%) 100%);
     border-right: 1px solid rgba(128, 128, 128, 0.2);
     display: flex;
     flex-direction: column;
@@ -278,7 +278,6 @@
     justify-content: center;
     padding: 3rem 2rem;
     overflow-y: auto;
-    background: linear-gradient(135deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.2) 100%);
 }
 
 .welcome-section {
@@ -480,7 +479,7 @@
     color: #ffffff;
     border-color: rgba(255, 255, 255, 0.15);
     box-shadow: 0 8px 20px rgba(var(--element-color-rgb), 0.25);
-    transform: translateY(-2px) scale(1.03);
+    transform: translateY(-2px) scale(1.02);
 }
 
 /* hover / active interactions mirror settings button */
@@ -659,7 +658,6 @@
 
 .instance-card.active-instance {
     border-color: rgba(128, 128, 128, 0.6);
-    box-shadow: 0 0 40px rgba(128, 128, 128, 0.5), inset 0 0 20px rgba(128, 128, 128, 0.15);
     transform: scale(1.02);
 }
 
@@ -1391,7 +1389,6 @@
     width: calc(100% - 28px);
     max-width: 320px;
     min-height: 44px;
-    background: linear-gradient(180deg, rgba(18,18,18,0.98), rgba(12,12,12,0.95));
     border: 1px solid rgba(255,255,255,0.04);
     color: #fff;
     padding: 8px 10px;
@@ -1587,6 +1584,34 @@
     .ads-panel { display: none; } /* esconder en pantallas muy pequeñas */
 }
 
+/* ==================== FLOATING INSTANCES SIDEBAR (desktop) ==================== */
+/* Make the instances sidebar float on desktop without breaking responsive rules */
+@media (min-width: 769px) {
+    .instances-sidebar {
+        position: fixed;
+        left: 15px;
+        top: 60px;
+        height: calc(100% - 88px - 88px);
+        border-radius: 12px;
+        z-index: 95;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(10px) saturate(1.02);
+        overflow: auto;
+        transition: transform 200ms cubic-bezier(.2,.9,.2,1), box-shadow 200ms ease;
+    }
+
+    /* Prevent main center content from being overlapped by the fixed sidebar */
+    .home-center {
+        margin-left: calc(180px + 40px); /* sidebar width + gap */
+        transition: margin-left 200ms cubic-bezier(.2,.9,.2,1);
+    }
+
+    /* Slight tweak for PayPal badge positioning when sidebar is floating */
+    .paypal-badge-link {
+        left: calc(180px + 38px); /* keep consistent spacing with new width */
+    }
+}
+
 /* asegurar que los avatars llenen el ancho y no provoquen reflow al activarse */
 .instance-avatars {
     display: flex;
@@ -1600,7 +1625,7 @@
 
 /* forzar ancho consistente en cada avatar para evitar diferencias visuales */
 .instance-avatar {
-    width: 100%; /* siempre full width dentro del contenedor */
+    width: 95%; /* siempre full width dentro del contenedor */
     min-width: 0;
     aspect-ratio: 1;
     border-radius: 12px;
@@ -1621,7 +1646,7 @@
 /* No cambiar layout (width/margin) al activarse: usar transform/scale sólo */
 .instance-avatar.active {
     /* mantener tamaño en flujo, solo aplicar efecto visual */
-    width: 100%;
+    width: 95%;
     margin: 0;
     transform: translateY(-6px) scale(1.03);
     border-radius: 10px;
@@ -1656,4 +1681,255 @@
 .instances-sidebar::after,
 .instances-sidebar::before {
     display: none !important;
+}
+
+.instance-popup {
+    /* keep non-destructive defaults, but provide a polished visible state via .show */
+    display: none; /* unchanged default */
+    align-items: center;
+    justify-content: center;
+}
+
+/* visible state: soft scale + fade + glass backdrop */
+.instance-popup.show {
+    display: flex !important;
+    animation: fadeIn 260ms cubic-bezier(.2,.9,.2,1);
+    backdrop-filter: blur(10px) saturate(1.05);
+}
+
+/* modal shell: subtle glass, more padding and smoother entrance */
+.instances-modal {
+    /* keep existing layout but improve visual polish */
+    background: linear-gradient(180deg, rgba(28,28,28,0.92), rgba(14,14,14,0.88));
+    border: 1px solid rgba(255,255,255,0.04);
+    box-shadow: 0 30px 80px rgba(6,6,6,0.85), inset 0 1px 0 rgba(255,255,255,0.02);
+    padding: 16px;
+    gap: 12px;
+    border-radius: 16px;
+    transform-origin: center;
+    transition: transform 260ms cubic-bezier(.2,.9,.2,1), opacity 200ms ease;
+}
+
+/* gentle scale-in when popup is shown (higher specificity to override earlier none !important) */
+.instance-popup.show .instances-modal {
+    transform: translateY(0) scale(1);
+}
+
+/* header refinement: tighter spacing, clearer CTA area and accessible focus */
+.modal-header {
+    padding: 18px 22px;
+    gap: 14px;
+    align-items: center;
+    background: linear-gradient(180deg, rgba(30,30,30,0.88), rgba(18,18,18,0.9));
+    border-radius: 12px 12px 0 0;
+}
+
+/* title: slightly larger, crisp weight */
+.modal-header h2 {
+    font-size: 1.85rem;
+    letter-spacing: -0.4px;
+    margin: 0;
+}
+
+/* Close CTA refinement (visible, consistent with theme) */
+.close-popup {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.04);
+    color: #ffdada;
+    transition: transform 180ms ease, background 160ms ease, color 160ms ease;
+}
+.close-popup:hover {
+    transform: scale(1.06) rotate(0deg);
+    background: rgba(255,255,255,0.04);
+}
+
+/* modal content: comfortable padding and subtle inner scroll visual */
+.modal-content {
+    padding: 18px;
+    gap: 12px;
+    border-radius: 10px;
+    transition: background 180ms ease;
+    background: linear-gradient(180deg, rgba(18,18,18,0.00), rgba(12,12,12,0.02));
+}
+
+/* instances grid: more breathing room and consistent min width */
+.instances-List {
+    gap: 1.6rem;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+/* Instance card: glass overlay, hover lift and CTA reveal */
+.instance-card {
+    height: 150px; /* marginally taller for comfort */
+    border-radius: 14px;
+    overflow: hidden;
+    background: linear-gradient(180deg, rgba(30,30,30,0.55), rgba(18,18,18,0.55));
+    border: 1px solid rgba(255,255,255,0.03);
+    transition: transform 220ms cubic-bezier(.2,.9,.2,1), box-shadow 220ms ease, border-color 220ms ease;
+    position: relative;
+}
+
+/* hover: lift, stronger border and reveal subtle inner glow */
+.instance-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 22px 46px rgba(0,0,0,0.6), inset 0 6px 20px rgba(255,255,255,0.015);
+    border-color: rgba(255,255,255,0.06);
+}
+
+/* overlay area centered at bottom with CTA, hidden by default */
+.instance-card .card-cta {
+    position: absolute;
+    left: 50%;
+    bottom: 12px;
+    transform: translateX(-50%) translateY(6px);
+    opacity: 0;
+    transition: opacity 180ms ease, transform 200ms cubic-bezier(.2,.9,.2,1);
+    z-index: 6;
+    pointer-events: none;
+}
+
+/* show CTA on hover */
+.instance-card:hover .card-cta {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* CTA button visuals (small, rounded, consistent color) */
+.instance-card .card-cta .btn {
+    background: linear-gradient(90deg, var(--element-color) 0%, rgba(var(--element-color-rgb),0.85) 100%);
+    color: #fff;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-weight: 800;
+    font-size: 0.95rem;
+    border: none;
+    box-shadow: 0 8px 20px rgba(var(--element-color-rgb),0.22);
+    cursor: pointer;
+    transition: transform 140ms ease, box-shadow 140ms ease;
+}
+.instance-card .card-cta .btn:active { transform: translateY(1px); }
+
+/* hover info panel inside card (keeps previous behavior but slightly refined) */
+.instance-card .instance-hover-info {
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 0.88rem;
+    bottom: 14px;
+    width: calc(100% - 36px);
+    max-width: 360px;
+    box-shadow: 0 14px 36px rgba(0,0,0,0.6);
+}
+
+/* Locked card style gets a softer overlay */
+.locked-code-card {
+    opacity: 0.88;
+    filter: grayscale(70%) contrast(0.9);
+}
+.locked-code-card .instance-banner-overlay {
+    background: linear-gradient(180deg, rgba(0,0,0,0.45), rgba(0,0,0,0.6));
+}
+
+/* Instance elements (cards inside modal/list) adopt the refined style */
+.instance-elements {
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.03);
+    transition: transform 200ms ease, box-shadow 200ms ease, background 180ms ease;
+    background: linear-gradient(180deg, rgba(34,34,34,0.45), rgba(22,22,22,0.38));
+}
+.instance-elements:hover {
+    transform: translateY(-6px);
+}
+
+/* ========================= Bottom Action Bar: unified look with modal ========================= */
+
+/* modernized action bar: glass, rounded, slightly elevated */
+.home-actions {
+    padding: 12px 20px;
+    gap: 1.2rem;
+    border-radius: 14px;
+    margin: 14px;
+    background: linear-gradient(180deg, rgba(18,18,18,0.6), rgba(12,12,12,0.55));
+    border: 1px solid rgba(255,255,255,0.03);
+    box-shadow: 0 18px 40px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.02);
+    backdrop-filter: blur(8px) saturate(1.03);
+}
+
+/* Instance-select: clearer focus, pill look and accessible outline */
+.instance-select {
+    padding: 10px 16px;
+    border-radius: 12px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border: 1px solid rgba(255,255,255,0.04);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+    transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+.instance-select:focus,
+.instance-select:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(var(--element-color-rgb),0.12);
+    border-color: var(--element-color);
+}
+
+/* play button container: stronger presence, consistent radius and depth */
+.play-instance {
+    border-radius: 12px;
+    padding: 6px;
+    transition: transform 180ms ease, box-shadow 180ms ease;
+}
+.play-instance .play-btn {
+    padding: 10px 22px;
+    border-radius: 10px;
+    font-size: 1.05rem;
+}
+.play-instance:hover { transform: translateY(-3px); }
+
+/* settings / audio buttons aligned with new pill style */
+.home-actions .settings-btn,
+.home-actions .audio-btn {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.03);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.45);
+}
+
+/* audio active state more pronounced */
+.home-actions .audio-btn.playing {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 12px 28px rgba(var(--element-color-rgb),0.24);
+}
+
+/* small screens: conserve space but keep the refined style */
+@media (max-width: 768px) {
+    .home-actions {
+        margin: 8px;
+        padding: 10px;
+        gap: 8px;
+        border-radius: 10px;
+    }
+    .instance-select { padding: 8px 12px; }
+    .home-actions .settings-btn,
+    .home-actions .audio-btn { width: 44px; height: 44px; }
+}
+
+/* Accessibility: ensure keyboard users can see focus on interactive small controls */
+.home-actions button:focus,
+.instance-select:focus,
+.play-btn:focus,
+.close-popup:focus {
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(var(--element-color-rgb),0.10);
+}
+
+/* Cuando el popup esté en modo sólo-código: ocultar la lista de instancias y evitar interacciones */
+.instance-popup.code-only .instances-List,
+.instance-popup.code-only .instances-List .instance-card {
+    display: none !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
 }

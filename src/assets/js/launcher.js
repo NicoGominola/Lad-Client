@@ -41,9 +41,25 @@ class Launcher {
 
     initLog() {
         document.addEventListener('keydown', e => {
-            if (e.ctrlKey && e.shiftKey && e.keyCode == 73 || e.keyCode == 123) {
-                ipcRenderer.send('main-window-dev-tools-close');
-                ipcRenderer.send('main-window-dev-tools');
+            try {
+                const tag = (e.target && e.target.tagName) || '';
+                const inEditable = tag === 'INPUT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable);
+
+                // Existing combos (fix precedence) -> Ctrl+Shift+I or F12
+                if ((e.ctrlKey && e.shiftKey && e.keyCode === 73) || e.keyCode === 123) {
+                    ipcRenderer.send('main-window-dev-tools-close');
+                    ipcRenderer.send('main-window-dev-tools');
+                    return;
+                }
+
+                // NEW: Ctrl+V opens DevTools when NOT focused in an input/textarea/contenteditable
+                if (e.ctrlKey && !inEditable && (e.key === 'v' || e.key === 'V' || e.keyCode === 86)) {
+                    // prevent accidental paste behavior outside editable contexts
+                    e.preventDefault && e.preventDefault();
+                    ipcRenderer.send('main-window-dev-tools');
+                }
+            } catch (err) {
+                console.warn('initLog key handler error:', err);
             }
         })
         new logger(pkg.name, '#7289da')

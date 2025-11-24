@@ -104,35 +104,60 @@ async function headplayer(skinBase64) {
 }
 
 async function setStatus(opt) {
-    let nameServerElement = document.querySelector('.server-status-name')
-    let statusServerElement = document.querySelector('.server-status-text')
-    let playersOnline = document.querySelector('.status-player-count .player-count')
+    try {
+        const nameServerElement = document.querySelector('.server-status-name');
+        const statusServerElement = document.querySelector('.server-status-text');
+        const playersOnline = document.querySelector('.status-player-count .player-count');
+        const statusCountContainer = document.querySelector('.status-player-count');
 
-    if (!opt) {
-        statusServerElement.classList.add('red')
-        statusServerElement.innerHTML = `Ferme - 0 ms`
-        document.querySelector('.status-player-count').classList.add('red')
-        playersOnline.innerHTML = '0'
-        return
-    }
+        // Helper para aplicar texto/clase si el elemento existe
+        const safeSetText = (el, text) => { if (el) el.innerHTML = text; };
+        const safeAddClass = (el, cls) => { if (el && el.classList) el.classList.add(cls); };
+        const safeRemoveClass = (el, cls) => { if (el && el.classList) el.classList.remove(cls); };
 
-    let { ip, port, nameServer } = opt
-    nameServerElement.innerHTML = nameServer
-    let status = new Status(ip, port);
-    let statusServer = await status.getStatus().then(res => res).catch(err => err);
+        if (!opt) {
+            safeAddClass(statusServerElement, 'red');
+            safeSetText(statusServerElement, `Ferme - 0 ms`);
+            safeAddClass(statusCountContainer, 'red');
+            safeSetText(playersOnline, '0');
+            return;
+        }
 
-    if (!statusServer.error) {
-        statusServerElement.classList.remove('red')
-        document.querySelector('.status-player-count').classList.remove('red')
-        statusServerElement.innerHTML = `En Linea - ${statusServer.ms} ms`
-        playersOnline.innerHTML = statusServer.playersConnect
-    } else {
-        statusServerElement.classList.add('red')
-        statusServerElement.innerHTML = `Farm - 0 ms`
-        document.querySelector('.status-player-count').classList.add('red')
-        playersOnline.innerHTML = '0'
+        let { ip, port, nameServer } = opt;
+        safeSetText(nameServerElement, nameServer || '');
+
+        let status = new Status(ip, port);
+        let statusServer = await status.getStatus().then(res => res).catch(err => err);
+
+        if (!statusServer || !statusServer.error) {
+            safeRemoveClass(statusServerElement, 'red');
+            safeRemoveClass(statusCountContainer, 'red');
+            const msText = statusServer && statusServer.ms ? `${statusServer.ms} ms` : '0 ms';
+            safeSetText(statusServerElement, `En Linea - ${msText}`);
+            safeSetText(playersOnline, (statusServer && (statusServer.playersConnect ?? statusServer.players)) ?? '0');
+        } else {
+            safeAddClass(statusServerElement, 'red');
+            safeSetText(statusServerElement, `Farm - 0 ms`);
+            safeAddClass(statusCountContainer, 'red');
+            safeSetText(playersOnline, '0');
+        }
+    } catch (e) {
+        // No dejar que una excepción rompa el flujo del caller
+        console.warn('setStatus error (ignored):', e);
     }
 }
+
+// show launcher version in settings (if the element exists)
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+        const verEl = document.querySelector('#launcher-version-text') || document.querySelector('.settings-version-text');
+        if (verEl && pkg && pkg.version) {
+            verEl.textContent = `v${pkg.version}`;
+        }
+    } catch (e) {
+        console.warn('Failed to set launcher version text:', e);
+    }
+});
 
 
 export {
