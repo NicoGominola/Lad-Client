@@ -60,8 +60,15 @@ function createWindow() {
             nodeIntegration: true
         },
     });
-    Menu.setApplicationMenu(null);
-    mainWindow.setMenuBarVisibility(false);
+    // Menu.setApplicationMenu(null);
+    // mainWindow.setMenuBarVisibility(false);
+    // Show menu by default; set HIDE_MENU=1 to keep previous behavior
+    if (process.env.HIDE_MENU === '1') {
+        try { Menu.setApplicationMenu(null); } catch(e){/* ignore */ }
+        try { mainWindow.setMenuBarVisibility(false); } catch(e){/* ignore */ }
+    } else {
+        try { mainWindow.setMenuBarVisibility(true); mainWindow.setAutoHideMenuBar(false); } catch(e){/* ignore */ }
+    }
     mainWindow.loadFile(path.join(`${app.getAppPath()}/src/launcher.html`));
     
     mainWindow.once('ready-to-show', () => {

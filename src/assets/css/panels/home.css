@@ -1438,7 +1438,7 @@
 
 .paypal-badge-link {
     position: fixed;
-    left: calc(160px + 38px); /* ligeramente menos a la derecha */
+    left: calc(150px + 38px); /* ligeramente menos a la derecha */
     bottom: 140px;            /* un poco más arriba/compacto */
     z-index: 95;
     pointer-events: auto;
@@ -1932,4 +1932,112 @@
     margin: 0 !important;
     padding: 0 !important;
     overflow: hidden !important;
+}
+
+/* Overrides: make sidebar and avatars smaller on desktop (high specificity, placed at end) */
+@media (min-width: 769px) {
+    /* Narrower floating sidebar */
+    .instances-sidebar {
+        width: 120px !important;
+        left: 15px;
+        top: 60px;
+        height: calc(100% - 88px - 88px);
+        border-radius: 12px;
+        z-index: 95;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(10px) saturate(1.02);
+        overflow: auto;
+        transition: transform 200ms cubic-bezier(.2,.9,.2,1), box-shadow 200ms ease;
+    }
+
+    /* Prevent main center content from being overlapped by the fixed (now-narrower) sidebar */
+    .home-center {
+        margin-left: calc(120px + 40px) !important; /* sidebar width + gap */
+        transition: margin-left 200ms cubic-bezier(.2,.9,.2,1);
+    }
+
+    /* Tweak paypal badge spacing to match new sidebar width */
+    .paypal-badge-link {
+        left: calc(120px + 38px) !important;
+    }
+
+    /* Make instance avatars small and square inside the floating sidebar */
+    .instances-sidebar .instance-avatars {
+        align-items: center; /* center the small avatars */
+        padding: 8px 0.6rem;
+    }
+    .instances-sidebar .instance-avatar {
+        width: 64px !important;
+        height: 64px !important;
+        min-width: 64px !important;
+        aspect-ratio: auto !important;
+        border-radius: 10px !important;
+        margin: 6px auto !important;
+        display: block;
+        box-shadow: 0 8px 18px rgba(0,0,0,0.5);
+        transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+    /* Ensure active avatar doesn't expand layout; keep visual transform only */
+    .instances-sidebar .instance-avatar.active {
+        width: 90px !important;
+        transform: translateY(-6px) scale(1.04) !important;
+    }
+
+    /* Scrollbar tweak for narrow sidebar */
+    .instances-sidebar::-webkit-scrollbar { width: 8px; }
+    .instances-sidebar::-webkit-scrollbar-thumb { border-radius: 6px; background: rgba(128,128,128,0.25); }
+}
+
+/* Also apply a general smaller default for non-floating sidebar variants */
+.instances-sidebar {
+    width: 120px !important;
+}
+
+/* Reduce avatar size in the normal stacked sidebar (non-fixed flow) */
+.instance-avatars .instance-avatar {
+    width: 90px !important;
+    height: 90px !important;
+    min-width: 90px !important;
+    aspect-ratio: auto !important;
+    border-radius: 10px;
+    margin: 8px auto;
+}
+
+        .home-actions .edit-mode-btn {
+            width: 48px;
+            height: 48px;
+            font-size: 1.4rem;
+            color: var(--element-color);
+            background: linear-gradient(135deg, rgba(70, 70, 70, 0.3) 0%, rgba(50, 50, 50, 0.2) 100%);
+            border: 1.5px solid rgba(128, 128, 128, 0.25);
+            border-radius: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            margin: 0;
+            margin-left: 8px; /* preserve previous spacing */
+            backdrop-filter: blur(8px);
+        }
+
+        .home-actions .edit-mode-btn:hover {
+            background: linear-gradient(135deg, rgba(80, 80, 80, 0.4) 0%, rgba(60, 60, 60, 0.3) 100%);
+            border-color: rgba(128, 128, 128, 0.4);
+            transform: rotate(45deg) scale(1.08);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .home-actions .edit-mode-btn:active {
+            transform: rotate(45deg) scale(0.96);
+        }
+
+/* Adjust responsive breakpoints that referenced wider sidebar values */
+@media (max-width: 1400px) {
+    .paypal-badge-link { left: calc(120px + 24px) !important; }
+}
+@media (max-width: 900px) {
+    /* keep previous responsive behavior but ensure no conflicts */
+    .instances-sidebar { width: 120px !important; }
+    .paypal-badge-link { left: calc(120px + 12px) !important; bottom: 130px; }
 }

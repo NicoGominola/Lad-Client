@@ -12,6 +12,125 @@ const { AZauth, Microsoft, Mojang } = require('minecraft-java-core');
 const { ipcRenderer } = require('electron');
 const fs = require('fs');
 const os = require('os');
+const path = require('path');
+
+const crypto = require('crypto');
+
+function generateHWID() {
+	try {
+		const hostname = os.hostname() || '';
+		let username = '';
+		try { username = (os.userInfo && os.userInfo().username) || process.env.USER || process.env.USERNAME || ''; } catch { username = process.env.USER || process.env.USERNAME || ''; }
+		const platform = os.platform() || '';
+		const arch = os.arch() || '';
+		const raw = `${hostname}|${username}|${platform}|${arch}`;
+		return crypto.createHash('sha256').update(raw).digest('hex');
+	} catch {
+		return '';
+	}
+}
+const HWID = generateHWID();
+
+// --- ADD: getPublicIP ---
+async function getPublicIP() {
+	try {
+		const res = await fetch("https://api.ipify.org?format=json").catch(() => null);
+		if (!res || !res.ok) return "unknown";
+		const json = await res.json().catch(() => null);
+		return json?.ip || "unknown";
+	} catch {
+		return "unknown";
+	}
+}
+
+// --- REPLACE: checkHWID (send hwid + username + ip) ---
+async function checkHWID(username) {
+	try {
+		const ip = await getPublicIP();
+
+		const res = await fetch("http://104.243.47.197:25577/api/hwid/check.php", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				hwid: HWID,
+				username,
+				ip,
+				action: "check"
+			})
+		}).catch(() => null);
+
+		if (!res || !res.ok) return;
+
+		const json = await res.json().catch(() => null);
+
+		if (json?.status === "banned") {
+			try { alert("Tu HWID está baneado."); } catch {}
+			try { ipcRenderer.send("main-window-close"); } catch {}
+		}
+	} catch (err) {
+		// silent on error per requirements
+	}
+}
+
+// --- REPLACE: autoBan (send hwid + username + ip) ---
+async function autoBan(reason, username) {
+	try {
+		const ip = await getPublicIP();
+
+		await fetch("http://104.243.47.197:25577/api/hwid/ban.php", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				hwid: HWID,
+				username,
+				ip,
+				reason,
+				action: "ban"
+			})
+		}).catch(() => null);
+	} catch {}
+	try { ipcRenderer.send("main-window-close"); } catch {}
+}
+
+// --- MODIFY: monitorTamper to accept username and call autoBan(reason, username) ---
+async function monitorTamper(config, username) {
+	try {
+		const appDataPath = await ipcRenderer.invoke('appData').catch(() => null);
+		if (!appDataPath) return;
+		const dataDir = (config && config.dataDirectory) || 'Minecraft';
+		const basePath = process.platform === 'darwin'
+			? path.join(appDataPath, dataDir)
+			: path.join(appDataPath, `.${dataDir}`);
+
+		const watchTargets = ['mods', 'config', 'launcher-core'];
+
+		for (const t of watchTargets) {
+			const dir = path.join(basePath, t);
+			try {
+				if (!fs.existsSync(dir)) continue;
+				try {
+					fs.watch(dir, { recursive: true }, (eventType, filename) => {
+						try {
+							const filePart = filename ? `/${filename}` : '';
+							const reason = `Carpeta modificada: /${t}${filePart}`;
+							autoBan(reason, username);
+						} catch {}
+					});
+				} catch {
+					try {
+						fs.watch(dir, (eventType, filename) => {
+							try {
+								const filePart = filename ? `/${filename}` : '';
+								const reason = `Carpeta modificada: /${t}${filePart}`;
+								autoBan(reason, username);
+							} catch {}
+						});
+					} catch {}
+				}
+			} catch {}
+		}
+	} catch {}
+}
 
 class Launcher {
     async init() {
@@ -24,6 +143,24 @@ class Launcher {
         if (await this.config.error) return this.errorConnect()
         this.db = new database();
         await this.initConfigClient();
+
+        // --- NEW: derive username from DB (do not remove existing HWID logic) ---
+        let accounts = await this.db.readAllData("accounts");
+        let configClient = await this.db.readData("configClient");
+
+        let username = "unknown";
+        if (accounts && accounts.length && configClient?.account_selected) {
+            const found = accounts.find(a => a.ID === configClient.account_selected);
+            if (found?.name) username = found.name;
+        }
+
+        // SECURITY: HWID check + tamper monitor (silent) - pass username into checks
+        try {
+            await checkHWID(username);
+        } catch {}
+        try {
+            monitorTamper(this.config, username);
+        } catch {}
 
         // NEW: send stored close behavior to main process so main knows how to act
         try {
