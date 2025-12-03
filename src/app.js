@@ -73,19 +73,6 @@ rpc.on('ready', () => {
 
 rpc.login({ clientId: CLIENT_ID }).catch(console.error);
 
-// Cambia la ruta de datos a una carpeta oculta y privada
-function getPrivateDataPath() {
-    const os = require('os');
-    const home = os.homedir();
-    if (process.platform === 'win32') {
-        return path.join(home, '.ladclient_data');
-    } else if (process.platform === 'darwin') {
-        return path.join(home, 'Library', 'Application Support', '.ladclient_data');
-    } else {
-        return path.join(home, '.ladclient_data');
-    }
-}
-
 let dev = process.env.NODE_ENV === 'dev';
 
 if (dev) {
@@ -95,12 +82,6 @@ if (dev) {
     if (!fs.existsSync(appdata)) fs.mkdirSync(appdata, { recursive: true });
     app.setPath('userData', appPath);
     app.setPath('appData', appdata)
-} else {
-    // Producción: usa la ruta privada
-    const privatePath = getPrivateDataPath();
-    if (!fs.existsSync(privatePath)) fs.mkdirSync(privatePath, { recursive: true });
-    app.setPath('userData', privatePath);
-    app.setPath('appData', privatePath);
 }
 
 if (!app.requestSingleInstanceLock()) app.quit();

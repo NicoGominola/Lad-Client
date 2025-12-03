@@ -213,9 +213,7 @@ class Settings {
 
     async javaPath() {
         let javaPathText = document.querySelector(".java-path-txt")
-        // Cambia la ruta mostrada para reflejar la carpeta privada
-        let privatePath = await ipcRenderer.invoke('appData');
-        javaPathText.textContent = `${privatePath}/runtime`;
+        javaPathText.textContent = `${await appdata()}/${process.platform == 'darwin' ? this.config.dataDirectory : `.${this.config.dataDirectory}`}/runtime`;
 
         let configClient = await this.db.readData('configClient')
         let javaPath = configClient?.java_config?.java_path || 'Usar la versión de java incluida con el launcher';
