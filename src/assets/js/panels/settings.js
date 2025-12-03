@@ -148,8 +148,13 @@ class Settings {
         document.getElementById("total-ram").textContent = `${totalMem} Go`;
         document.getElementById("free-ram").textContent = `${freeMem} Go`;
 
+        // Limites seguros
+        const minAllowed = 1; // 1 GB mínimo
+        const maxAllowed = Math.max(2, Math.min(16, Math.floor(totalMem * 0.8))); // 80% de la RAM, máx 16GB, min 2GB
+
         let sliderDiv = document.querySelector(".memory-slider");
-        sliderDiv.setAttribute("max", Math.trunc((80 * totalMem) / 100));
+        sliderDiv.setAttribute("min", minAllowed);
+        sliderDiv.setAttribute("max", maxAllowed);
 
         if (!config.java_config) {
             config.java_config = { java_path: null, java_memory: { min: 2, max: 4 } };
@@ -164,11 +169,17 @@ class Settings {
         let ramMin = parseFloat(config.java_config.java_memory.min);
         let ramMax = parseFloat(config.java_config.java_memory.max);
 
-        let maxAllowed = Math.trunc((80 * totalMem) / 100);
-        if (ramMax > maxAllowed || ramMin < 1 || ramMin > ramMax) {
-            ramMin = 2;
-            ramMax = 4;
-            config.java_config.java_memory = { min: 2, max: 4 };
+        // Corrige valores fuera de rango
+        if (isNaN(ramMin) || ramMin < minAllowed) ramMin = minAllowed;
+        if (isNaN(ramMax) || ramMax > maxAllowed) ramMax = Math.min(4, maxAllowed);
+        if (ramMin > ramMax) ramMin = ramMax;
+
+        // Actualiza config si hay cambios
+        if (
+            config.java_config.java_memory.min !== ramMin ||
+            config.java_config.java_memory.max !== ramMax
+        ) {
+            config.java_config.java_memory = { min: ramMin, max: ramMax };
             await this.db.updateData('configClient', config);
         }
 
@@ -183,14 +194,18 @@ class Settings {
         maxSpan.setAttribute("value", `${ram.ramMax} Go`);
 
         slider.on("change", async (min, max) => {
-            let config = await this.db.readData('configClient');
+            // Limita valores en tiempo real
+            min = Math.max(minAllowed, Math.min(maxAllowed, min));
+            max = Math.max(minAllowed, Math.min(maxAllowed, max));
+            if (min > max) min = max;
+
             minSpan.setAttribute("value", `${min} Go`);
             maxSpan.setAttribute("value", `${max} Go`);
-            
+
+            let config = await this.db.readData('configClient');
             if (!config.java_config) {
                 config.java_config = { java_path: null, java_memory: { min: 2, max: 4 } };
             }
-            
             config.java_config.java_memory = { min: parseFloat(min), max: parseFloat(max) };
             await this.db.updateData('configClient', config);
         });
@@ -198,7 +213,9 @@ class Settings {
 
     async javaPath() {
         let javaPathText = document.querySelector(".java-path-txt")
-        javaPathText.textContent = `${await appdata()}/${process.platform == 'darwin' ? this.config.dataDirectory : `.${this.config.dataDirectory}`}/runtime`;
+        // Cambia la ruta mostrada para reflejar la carpeta privada
+        let privatePath = await ipcRenderer.invoke('appData');
+        javaPathText.textContent = `${privatePath}/runtime`;
 
         let configClient = await this.db.readData('configClient')
         let javaPath = configClient?.java_config?.java_path || 'Usar la versión de java incluida con el launcher';

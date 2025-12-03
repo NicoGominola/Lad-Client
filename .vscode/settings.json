@@ -6,5 +6,6 @@
         "**/dist": true,
         "**/app": true,
         "**/.gitignore": true
-    }
+    },
+    "Codegeex.RepoIndex": true
 }

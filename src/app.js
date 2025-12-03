@@ -19,7 +19,27 @@ RPC.register(CLIENT_ID);
 const rpc = new RPC.Client({ transport: 'ipc' });
 
 let currentInstance = 'Sin seleccionar';
+let currentInstanceObj = null; // Nuevo: almacena el objeto de la instancia
 let currentPanel = 'home';
+
+// Helper para obtener el asset key del icono de la instancia
+function getInstanceIconKey(instanceObj) {
+    if (!instanceObj) return 'launcher_logo';
+    let icon = instanceObj.avatarUrl || instanceObj.iconUrl || instanceObj.icon || instanceObj.avatar || null;
+    if (Array.isArray(icon)) icon = icon.find(i => typeof i === 'string');
+    if (icon && typeof icon === 'string') {
+        // Extrae solo el nombre base sin extensión
+        let match = icon.match(/([a-zA-Z0-9_\-]+)\.(png|jpg|jpeg|webp)$/i);
+        if (match) return match[1];
+        // Si es una URL, intenta extraer el nombre base
+        try {
+            let url = new URL(icon, 'file://');
+            let base = url.pathname.split('/').pop();
+            if (base) return base.split('.')[0];
+        } catch {}
+    }
+    return 'launcher_logo';
+}
 
 async function setActivity(instanceName = currentInstance, panelName = currentPanel) {
     if (!rpc) return;
@@ -31,10 +51,13 @@ async function setActivity(instanceName = currentInstance, panelName = currentPa
         details = 'En el login';
     }
 
+    // Usa el icono de la instancia si está disponible
+    let largeImageKey = getInstanceIconKey(currentInstanceObj);
+
     rpc.setActivity({
         startTimestamp: new Date(),
-        largeImageKey: 'launcher_logo',
-        largeImageText: 'Lad Client',
+        largeImageKey: largeImageKey,
+        largeImageText: instanceName || 'Lad Client',
         smallImageKey: 'icon',
         smallImageText: 'Preparándome para jugar',
         details: details,
@@ -50,6 +73,19 @@ rpc.on('ready', () => {
 
 rpc.login({ clientId: CLIENT_ID }).catch(console.error);
 
+// Cambia la ruta de datos a una carpeta oculta y privada
+function getPrivateDataPath() {
+    const os = require('os');
+    const home = os.homedir();
+    if (process.platform === 'win32') {
+        return path.join(home, '.ladclient_data');
+    } else if (process.platform === 'darwin') {
+        return path.join(home, 'Library', 'Application Support', '.ladclient_data');
+    } else {
+        return path.join(home, '.ladclient_data');
+    }
+}
+
 let dev = process.env.NODE_ENV === 'dev';
 
 if (dev) {
@@ -59,6 +95,12 @@ if (dev) {
     if (!fs.existsSync(appdata)) fs.mkdirSync(appdata, { recursive: true });
     app.setPath('userData', appPath);
     app.setPath('appData', appdata)
+} else {
+    // Producción: usa la ruta privada
+    const privatePath = getPrivateDataPath();
+    if (!fs.existsSync(privatePath)) fs.mkdirSync(privatePath, { recursive: true });
+    app.setPath('userData', privatePath);
+    app.setPath('appData', privatePath);
 }
 
 if (!app.requestSingleInstanceLock()) app.quit();
@@ -195,6 +237,12 @@ ipcMain.handle('is-dark-theme', (_, theme) => {
 
 ipcMain.on('instance-changed', (event, data) => {
     currentInstance = data.instanceName;
+    // Recibe el objeto de la instancia desde el renderer
+    if (data.instanceObj) {
+        currentInstanceObj = data.instanceObj;
+    } else {
+        currentInstanceObj = null;
+    }
     setActivity(currentInstance, currentPanel);
     console.log(`Instancia cambió a: ${currentInstance}`);
 })

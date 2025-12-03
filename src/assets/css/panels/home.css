@@ -316,8 +316,8 @@
 /* ==================== ACTION BAR ==================== */
 .home-actions {
     position: fixed;
-    top: 600px;
-    left: 400px;
+    top: 570px;
+    left: 370px;
 
     display: flex;
     justify-content: center;
@@ -1855,8 +1855,8 @@
 /* modernized action bar: glass, rounded, slightly elevated */
 .home-actions {
     position: fixed;
-    top: 600px;
-    left: 380px;
+    top: 570px;
+    left: 370px;
 
     padding: 12px 20px;
     width: 35%;
@@ -2027,3 +2027,4 @@
     .instances-sidebar { width: 120px !important; }
     .paypal-badge-link { left: calc(120px + 12px) !important; bottom: 130px; }
 }
+

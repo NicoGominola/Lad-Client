@@ -1,43 +1,52 @@
 <div class="settings-container">
-    <!-- Sidebar with tabs -->
-    <div class="settings-sidebar">
-        <div class="sidebar-header">
+
+    <!-- Header with title and tabs -->
+    <div class="settings-header">
+        <div class="settings-title">
             <span class="settings-icon">⚙️</span>
-            <h2>Ajustes</h2>
+            <h1>Configuración</h1>
         </div>
+
         <div class="settings-tabs">
             <div id="account" class="settings-tab active-tab">
-                <img class="tab-icon" src="assets/images/logo/perfil.png" alt="Cuentas" style="width:24px;height:24px;object-fit:cover;border-radius:4px;">
+                <img class="tab-icon" src="assets/images/logo/perfil.png" style="width:22px;height:22px;">
                 <span class="tab-label">Cuentas</span>
             </div>
             <div id="java" class="settings-tab">
-                <img class="tab-icon" src="assets/images/logo/ramm.png" alt="RAM" style="width:24px;height:24px;object-fit:cover;border-radius:4px;">
+                <img class="tab-icon" src="assets/images/logo/ramm.png" style="width:22px;height:22px;">
                 <span class="tab-label">RAM</span>
             </div>
             <div id="resolution" class="settings-tab">
-                <img class="tab-icon" src="assets/images/logo/settings.png" alt="Resolución" style="width:24px;height:24px;object-fit:cover;border-radius:4px;">
+                <img class="tab-icon" src="assets/images/logo/settings.png" style="width:22px;height:22px;">
                 <span class="tab-label">Resolución</span>
             </div>
             <div id="launcher" class="settings-tab">
-                <img class="tab-icon" src="assets/images/logo/info2.png" alt="Launcher" style="width:24px;height:24px;object-fit:contain;border-radius:4px;">
+                <img class="tab-icon" src="assets/images/logo/info2.png" style="width:22px;height:22px;">
                 <span class="tab-label">Launcher</span>
             </div>
             <div id="legal" class="settings-tab">
-                <img class="tab-icon" src="assets/images/logo/legal.png" alt="Información Legal" style="width:24px;height:24px;object-fit:contain;border-radius:4px;">
+                <img class="tab-icon" src="assets/images/logo/legal.png" style="width:22px;height:22px;">
                 <span class="tab-label">Información</span>
             </div>
         </div>
+
+        <div class="settings-actions">
+            <button id="save" class="settings-close-btn">
+                <span>✕</span>
+            </button>
+        </div>
     </div>
 
-    <button id="save" class="settings-close-btn">✕</button>
-
+    <!-- Content area -->
     <div class="settings-content">
+
         <!-- Account tab -->
         <div id="account-tab" class="settings-panel active-panel">
             <div class="panel-header">
                 <h2>Cuentas de Jugadores</h2>
                 <p class="panel-subtitle">Gestiona tus cuentas de Minecraft</p>
             </div>
+
             <div class="settings-card">
                 <div class="accounts-list content-scroll">
                 </div>
@@ -91,11 +100,14 @@
                 <h2>Resolución de Pantalla</h2>
                 <p class="panel-subtitle">Personaliza la resolución de tu juego</p>
             </div>
+
             <div class="settings-card">
                 <div class="card-content">
+
                     <div class="setting-info">
                         <p>Establece una resolución personalizada para tu pantalla. La resolución ideal es <strong>1280 x 720</strong>.</p>
                     </div>
+
                     <div class="settings-elements content-center">
                         <div class="resolution-input-group">
                             <div class="input-group-item">
@@ -110,6 +122,7 @@
                             <button class="size-reset btn-secondary">Restaurar</button>
                         </div>
                     </div>
+
                 </div>
             </div>
         </div>
@@ -120,54 +133,48 @@
                 <h2>Información del Launcher</h2>
                 <p class="panel-subtitle">Configuración y detalles del launcher</p>
             </div>
-            
-            <!-- About card -->
+
+            <!-- About -->
             <div class="settings-card">
                 <div class="card-title">Acerca de Lad Client</div>
                 <div class="card-content">
                     <p class="launcher-info">
                         Este launcher fue creado por <strong>@ImD4rken y @NicoGominola</strong>, Ex Admin y Director de Lad Studio.
-                        El launcher Está hecho para jugar muchos eventos tanto para usuarios premium como no premium.
-                        Le damos las gracias al equipo y a la comunidad por formar parte de este proyecto.
+                        El launcher está hecho para jugar eventos premium y no premium.  
+                        Gracias a la comunidad por su apoyo continuo.
                     </p>
                 </div>
             </div>
 
-            <!-- Close behavior card -->
+            <!-- Close behavior -->
             <div class="settings-card">
                 <div class="card-title">Comportamiento al Cerrar</div>
                 <div class="card-content">
                     <div class="close-box close-selector">
-                        <button class="close-btn close-launcher" title="Cerrar solo el launcher">
-                            <span>Cerrar Launcher</span>
-                        </button>
-                        <button class="close-btn close-all" title="Cerrar todo">
-                            <span>Cerrar Todo</span>
-                        </button>
-                        <button class="close-btn close-none" title="No cerrar nada">
-                            <span>No Cerrar</span>
-                        </button>
+                        <button class="close-btn close-launcher"><span>Cerrar Launcher</span></button>
+                        <button class="close-btn close-all"><span>Cerrar Todo</span></button>
+                        <button class="close-btn close-none"><span>No Cerrar</span></button>
                     </div>
                 </div>
             </div>
 
-            <!-- Audio volume control for launcher -->
+            <!-- Volume -->
             <div class="settings-card">
                 <div class="card-title">Volumen del Launcher</div>
                 <div class="card-content">
                     <div class="volume-control">
-                        <label for="audio-volume-slider">Volumen de la música</label>
+                        <label>Volumen de la música</label>
                         <div class="volume-row">
-                            <input id="audio-volume-slider" class="volume-slider" type="range" min="0" max="100" step="1" value="100" />
+                            <input id="audio-volume-slider" class="volume-slider" type="range" min="0" max="100" value="100">
                             <div id="audio-volume-value" class="volume-value">100%</div>
-                            <button id="audio-mute-toggle" class="audio-mute-btn" title="Silenciar">🔈</button>
+                            <button id="audio-mute-toggle" class="audio-mute-btn">🔈</button>
                         </div>
-                        <p class="volume-note">Ajusta el volumen global de la música del launcher para cada instancia.</p>
+                        <p class="volume-note">Ajusta el volumen global del launcher.</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Java Path card -->
+            <!-- Java Path -->
             <div class="settings-card">
                 <div class="card-title">Ruta de Java</div>
                 <div class="card-content">
@@ -183,122 +190,92 @@
                 </div>
             </div>
 
-            <!-- Developers Section -->
+            <!-- Developers -->
             <div class="developers-section">
                 <h3 class="developers-title">DEVELOPERS:</h3>
+
                 <div class="developers-container">
-                    <!-- Developer 1 -->
+                    <!-- Dev 1 -->
                     <div class="developer-card">
-                        <div class="dev-avatar" style="background-image: url('assets/images/devs/darken.jpg')"></div>
+                        <div class="dev-avatar" style="background-image:url('assets/images/devs/darken.jpg')"></div>
                         <div class="dev-info">
                             <h4 class="dev-name">@ImD4rken</h4>
                             <p class="dev-role">ExAdmin & Developer 1</p>
-                            <p class="dev-description">ExAdmin y Desarrollador Principal del Launcher.</p>
+                            <p class="dev-description">Desarrollador principal del launcher.</p>
                         </div>
                     </div>
 
-                    <!-- Developer 2 -->
+                    <!-- Dev 2 -->
                     <div class="developer-card">
-                        <div class="dev-avatar" style="background-image: url('assets/images/devs/NicoGominola.png')"></div>
+                        <div class="dev-avatar" style="background-image:url('assets/images/devs/NicoGominola.png')"></div>
                         <div class="dev-info">
                             <h4 class="dev-name">Nico Gominola</h4>
                             <p class="dev-role">Director & Developer 2</p>
-                            <p class="dev-description">Director y contribuidor en el desarrollo del launcher y su mejora continua.</p>
+                            <p class="dev-description">Contribuidor al desarrollo y mejoras continuas.</p>
                         </div>
                     </div>
                 </div>
             </div>
+
         </div>
 
+        <!-- Legal tab -->
         <div id="legal-tab" class="settings-panel content-scroll">
+
             <div class="panel-header">
                 <h2>Información Legal</h2>
                 <p class="panel-subtitle">Términos, privacidad, créditos y partners</p>
             </div>
 
+            <!-- Terms -->
             <div class="settings-card">
                 <div class="card-title">1. Términos y Condiciones</div>
                 <div class="card-content">
-                    <div class="legal-section">
-                        <h3 class="legal-title">Términos y Condiciones</h3>
-                        <div class="legal-text content-scroll">
-                            <p>
-                                Al utilizar este launcher, el usuario acepta los términos y condiciones de uso aplicables.
-                                El uso del software está sujeto a las leyes locales y a las políticas del servicio. El usuario
-                                se compromete a no utilizar el launcher para fines ilícitos ni a modificarlo de forma que
-                                vulnere los derechos de terceros.
-                            </p>
-                            <p>
-                                El software se proporciona "tal cual" sin garantías explícitas. Los desarrolladores no serán
-                                responsables de pérdidas directas o indirectas que pudieran derivarse del uso del launcher.
-                            </p>
-                            <p>
-                                Estas condiciones pueden ser actualizadas sin previo aviso; se recomienda revisar esta sección
-                                periódicamente.
-                            </p>
-                            <p>El usuario acepta que cualquier disputa se resolverá conforme a la jurisdicción aplicable indicada por los desarrolladores.</p>
-                        </div>
+                    <div class="legal-text content-scroll">
+                        <p>Al utilizar este launcher, aceptas los términos y condiciones establecidos.</p>
+                        <p>El software se proporciona "tal cual" sin garantías explícitas. Los desarrolladores no serán responsables por daños directos o indirectos.</p>
+                        <p>Las condiciones pueden actualizarse sin previo aviso.</p>
                     </div>
                 </div>
             </div>
 
+            <!-- Privacy -->
             <div class="settings-card">
                 <div class="card-title">2. Política de Privacidad</div>
                 <div class="card-content">
-                    <div class="legal-section">
-                        <h3 class="legal-title">Política de Privacidad</h3>
-                        <div class="legal-text content-scroll">
-                            <p>
-                                El launcher puede recopilar o utilizar la siguiente información con fines operativos y de soporte:
-                            </p>
-                            <ul>
-                                <li><strong>Nombre de cuenta:</strong> usado para identificar la sesión y las instancias desbloqueadas.</li>
-                                <li><strong>HWID:</strong> identificador de equipo (hash) para medidas de seguridad y detección de fraudes.</li>
-                                <li><strong>IP pública:</strong> utilizada con fines analíticos y de seguridad.</li>
-                                <li><strong>Logs locales:</strong> en caso de errores, se podrán leer logs locales para diagnóstico.</li>
-                            </ul>
-                            <p class="info-highlight">
-                                Estos datos se tratan con la finalidad de mantener la integridad del servicio. No se compartirán con terceros.
-                            </p>
-                        </div>
+                    <div class="legal-text content-scroll">
+                        <ul>
+                            <li><strong>Nombre de cuenta:</strong> identificación del usuario.</li>
+                            <li><strong>HWID:</strong> seguridad y detección de fraudes.</li>
+                            <li><strong>IP pública:</strong> seguridad y análisis.</li>
+                            <li><strong>Logs locales:</strong> diagnóstico de errores.</li>
+                        </ul>
+                        <p class="info-highlight">Los datos no se comparten con terceros.</p>
                     </div>
                 </div>
             </div>
 
+            <!-- Credits -->
             <div class="settings-card">
                 <div class="card-title">3. Créditos</div>
                 <div class="card-content">
-                    <div class="legal-section">
-                        <h3 class="legal-title">Créditos</h3>
-                        <div class="legal-text content-scroll">
-                            <p><strong>Programación del launcher:</strong> @ImD4rken & @NicoGominola</p>
-                            <p><strong>Creditos generales:</strong> NicoGominola, NeoHosting, ImD4rken, "Miguelki", ZephyHosting, Lumen Studios, XeroHost.</p>
-                        </div>
-                        <p>Gracias a todos.</p>
-                    </div>
+                    <p><strong>Programación del launcher:</strong> @ImD4rken & @NicoGominola</p>
+                    <p><strong>Créditos generales:</strong> NicoGominola, NeoHosting, ImD4rken, Miguelki, ZephyHosting, Lumen Studios, XeroHost.</p>
                 </div>
             </div>
 
+            <!-- Partners -->
             <div class="settings-card">
                 <div class="card-title">4. Partners / Sponsors</div>
                 <div class="card-content">
-                    <div class="legal-section">
-                        <h3 class="legal-title">Partners</h3>
-                        <div class="partners-grid" aria-live="polite">
-                            <div class="partner-item">
-                                <img class="partner-logo" src="assets/images/devs/NeoHosting.png" alt="NeoHosting">
-                            </div>
-                            <div class="partner-item">
-                                <img class="partner-logo" src="assets/images/devs/Zephy.png" alt="ZephyHosting">
-                            </div>
-                            <div class="partner-item">
-                                <img class="partner-logo" src="assets/images/devs/xerohost.png" alt="Xerohost">
-                            </div>
+                    <div class="partners-grid">
+                        <div class="partner-item"><img src="assets/images/devs/NeoHosting.png"></div>
+                        <div class="partner-item"><img src="assets/images/devs/Zephy.png"></div>
+                        <div class="partner-item"><img src="assets/images/devs/xerohost.png"></div>
                     </div>
                     <p>Gracias por el apoyo, juntos estamos construyendo una gran comunidad.</p>
                 </div>
             </div>
         </div>
-
     </div>
 </div>
